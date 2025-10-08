@@ -70,7 +70,7 @@ export class ProductController {
       pagination, 
       {
         ...filter,
-        ownerId: req.user.role == UserRoles.CREDITOR ? req.user.id : undefined,
+        ownerId: req.user.role == UserRoles.CREDITOR ? req.user.id : undefined, // agar kreditor bo'lsa u o'zining malumotlarini ko'ra olishi kerak boshqalarnikini emas. Agar admin bo'lsa u holatda ko'ra oladi shu uchun undefined qilib ketilgan.
       }, 
       { 
         field: sort.sortField, 
