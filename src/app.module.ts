@@ -1,14 +1,29 @@
 import { Module } from '@nestjs/common';
-import { AdminModule, PrismaModule, ProductCategoryModule, ProductModule, UsersModule } from './modules';
-
+import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
+import { PassportModule } from '@nestjs/passport';
+import { redisStore } from 'cache-manager-redis-yet';
+import { 
+  AuthModule, 
+  ProductModule, 
+  ProductCategoryModule
+} from './modules';
 
 @Module({
   imports: [
-    PrismaModule,
-    UsersModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    PassportModule.register({ session: false }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 30 * 1000,
+      store: redisStore,
+    }),
+    AuthModule,
     ProductModule,
     ProductCategoryModule,
-    AdminModule,
   ],
 })
 export class AppModule {}

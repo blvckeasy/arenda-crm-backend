@@ -1,3 +1,3 @@
-export * from './product.controller';
-export * from './product.module';
-export * from './product.service';
+export * from './controllers';
+export * from './modules';
+export * from './services';
