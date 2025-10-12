@@ -6,7 +6,8 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { 
   AuthModule, 
   ProductModule, 
-  ProductCategoryModule
+  ProductCategoryModule,
+  CustomerModule,
 } from './modules';
 
 @Module({
@@ -24,6 +25,7 @@ import {
     AuthModule,
     ProductModule,
     ProductCategoryModule,
+    CustomerModule,
   ],
 })
 export class AppModule {}

@@ -57,14 +57,9 @@ export class ProductController {
       includeString: QueryProductIncludeDto;
     },
   ) {
-
-    console.log(req.user);
-
     const include = includeString?.include 
       ? Object.assign({}, ...includeString.include.split(',').map((e) => {return { [e]: true }})) 
       : undefined;
-
-    console.log(req.user.role == UserRoles.CREDITOR ? req.user.id : undefined);
 
     const products = await this.coreProductService.list(
       pagination, 
