@@ -61,7 +61,7 @@ export class CustomerController {
       field: sort.sortField,
       direction: sort.sortOrder,
     });
-    return customers;
+    return customers;// Boshqa barcha string'lar uchun "contains" ishlataveramiz.
   }
 
   @Patch('update')

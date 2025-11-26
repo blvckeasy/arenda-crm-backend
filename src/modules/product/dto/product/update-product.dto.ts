@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
-import { RecordStatus } from '@blvckeasy/arenda-crm-core';
+import { ProductStatus, RecordStatus } from '@blvckeasy/arenda-crm-core';
 import { Type } from 'class-transformer';
 
 export class UpdateProductDto {
@@ -27,11 +27,6 @@ export class UpdateProductDto {
   rentalPrice?: number;
 
   @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  yearPercent?: number;
-
-  @IsOptional()
   @IsString()
   brand?: string;
 
@@ -40,6 +35,10 @@ export class UpdateProductDto {
   model?: string;
 
   @IsOptional()
+  @IsEnum(ProductStatus)
+  status?: ProductStatus;
+
+  @IsOptional()
   @IsEnum(RecordStatus)
-  status?: RecordStatus;
+  recordStatus?: RecordStatus;
 }

@@ -1,7 +1,11 @@
 import { RecordStatus } from '@blvckeasy/arenda-crm-core';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class GetCustomerDto {
+  @IsOptional()
+  @IsNumber()
+  id?: number;
+
   @IsOptional()
   @IsString()
   fullName?: string;

@@ -20,13 +20,14 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@blvckeasy/arenda-crm-core": "^0.1.8",
+    "@blvckeasy/arenda-crm-core": "^0.2.2",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.0.1",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.3",
     "cache-manager-ioredis": "^2.1.0",

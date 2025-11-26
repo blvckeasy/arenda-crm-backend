@@ -1,4 +1,4 @@
-import { CoreProductCategoryService } from '@blvckeasy/arenda-crm-core';
+import { CoreProductCategoryService, ProductCategory } from '@blvckeasy/arenda-crm-core';
 import {
   Body,
   Controller,
@@ -9,8 +9,8 @@ import {
   Query,
   UsePipes,
 } from '@nestjs/common';
-import { SortDto, PaginationDto, ParseQueryPipe } from '../../../common';
-import { CreateProductCategoryDto, FilterByIdDto, GetProductCategoryDto, UpdateProductCategoryBodyDto } from '../dto';
+import { FilterByIdDto, SortDto, PaginationDto, ParseQueryPipe } from '../../../common';
+import { CreateProductCategoryDto, GetProductCategoryDto, UpdateProductCategoryBodyDto } from '../dto';
 import { ProductCategoryService } from '../services';
 import { RecordStatus } from '@blvckeasy/arenda-crm-core';
 
@@ -50,7 +50,7 @@ export class ProductCategoryController {
     const categories = await this.coreProductCategoryService.list(
       pagination,
       filter,
-      { field: sort.sortField, direction: sort.sortOrder },
+      // { field: sort.sortField, direction: sort.sortOrder },
     );
     return categories;
   }
@@ -74,5 +74,25 @@ export class ProductCategoryController {
       { status: RecordStatus.DELETED },
     );
     return deleted;
+  }
+
+  /**
+   * Recursively builds children arrays.
+   * - categories: flat list returned by Prisma
+   * - parentId: number | null
+   */
+  private buildTree(
+    categories: ProductCategory[],
+    parentId: number | null,
+  ): Array<ProductCategory & { children: any[] }> {
+    return categories
+      .filter(cat => (cat.parent_id ?? null) === parentId)
+      .map(cat => {
+        const children = this.buildTree(categories, cat.id);
+        return {
+          ...cat,
+          children,
+        };
+      });
   }
 }

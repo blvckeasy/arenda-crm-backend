@@ -6,6 +6,7 @@ import { CoreProductCategoryModule } from '@blvckeasy/arenda-crm-core';
 @Module({
   imports: [CoreProductCategoryModule],
   controllers: [ProductCategoryController],
-  providers: [ProductCategoryService]
+  providers: [ProductCategoryService],
+  exports: [ProductCategoryService],
 })
 export class ProductCategoryModule {}

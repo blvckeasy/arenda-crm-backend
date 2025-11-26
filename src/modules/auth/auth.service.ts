@@ -9,7 +9,7 @@ export class AuthService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async handleGoogleLogin(creditorData: GoogleUser): Promise<{ verified: boolean; data: GoogleUser }> {
+  async handleGoogleLogin(creditorData: GoogleUser): Promise<GoogleUser> {
     const cacheKey = `google_oauth_${creditorData.email}`;
     const foundEmailData = await this.cacheManager.get<GoogleUser>(cacheKey);
 
@@ -19,10 +19,7 @@ export class AuthService {
       await this.cacheManager.set(cacheKey, creditorData);
     }
 
-    return {
-      verified: true,
-      data: creditorData,
-    };
+    return creditorData;
   }
 
   async getCreditorFromCache(cacheKey: string): Promise<any> {

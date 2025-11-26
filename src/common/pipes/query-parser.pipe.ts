@@ -13,7 +13,7 @@ export class ParseQueryPipe implements PipeTransform {
       // DTO ichidagi property nomlarini olish
       const dtoProps = Object.keys(new DtoClass());
       // Query'dan faqat shu property'larni olish
-      const filtered = Object.fromEntries(
+      let filtered = Object.fromEntries(
         Object.entries(value).filter(([prop]) => dtoProps.includes(prop)),
       );
       // Instance yaratish

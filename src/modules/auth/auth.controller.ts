@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Req,
+  Request,
   Res,
   UseGuards,
   UseInterceptors,
@@ -19,9 +20,12 @@ import {
   CorePasswordService,
   IncorrectPasswordError,
   Prisma,
-  GoogleParsedToken,
   CreditorStatus,
   Creditor,
+  JwtGuard,
+  AccountAlreadyExistsError,
+  GoogleUser,
+  InternalServerError,
 } from '@blvckeasy/arenda-crm-core';
 import { ConfigService } from '@nestjs/config';
 import { SignInAdminDto, SignUpAdminDto } from './dto';
@@ -40,7 +44,7 @@ export class AuthController {
   ) {
     this.services = {
       [UserRoles.CREDITOR]: this.coreCreditorService,
-    }
+    };
   }
 
   @Get('google')
@@ -74,7 +78,7 @@ export class AuthController {
       const payload = await this.accessTokenService.verify(googleToken);
       findOptions.email = payload.email;
     }
-    
+
     const service = this.services[userRole];
 
     const creditor = await service.getByUnique(
@@ -100,7 +104,7 @@ export class AuthController {
 
     const { password: _, ...result } = creditor;
     return {
-      data: result,
+      creditor: result,
       token: {
         access_token,
       },
@@ -108,14 +112,31 @@ export class AuthController {
   }
 
   @Post('signup')
-  async signUp(
-    @Body() body: SignUpAdminDto,
-  ) {
-    const { username, password, googleToken, userRole } = body;
+  async signUp(@Body() body: SignUpAdminDto) {
+    const { username, password, token, userRole } = body;
     const service = this.services[userRole];
 
-    const { data: googleUser } = await this.accessTokenService
-      .verify(googleToken) as GoogleParsedToken;
+    const googleUser = (await this.accessTokenService.verify(
+      token,
+    )) as GoogleUser;
+
+    let foundCreditor: Creditor | null = null;
+
+    if (googleUser?.email) {
+      foundCreditor = await service.getByUnique({
+        email: googleUser.email,
+      } as Prisma.CreditorWhereUniqueInput);
+    }
+
+    if (!foundCreditor) {
+      foundCreditor = await service.getByUnique({
+        username,
+      } as Prisma.CreditorWhereUniqueInput);
+    }
+
+    if (foundCreditor) {
+      throw new AccountAlreadyExistsError();
+    }
 
     const newCreditor = await service.create({
       username,
@@ -131,7 +152,7 @@ export class AuthController {
 
     const { password: _, ...result } = newCreditor;
     return {
-      data: result,
+      creditor: result,
       token: {
         access_token,
       },
@@ -139,7 +160,43 @@ export class AuthController {
   }
 
   async generateAccessToken(user: Creditor, userRole: UserRoles) {
-    const access_token = await this.accessTokenService.sign({ id: user.id, role: userRole });
+    if (!user) throw new InternalServerError("User is required!");
+
+    const access_token = await this.accessTokenService.sign({
+      id: user.id,
+      role: userRole,
+    });
     return access_token;
+  }
+
+  @UseGuards(JwtGuard)
+  @Get('/creditor/get-my-info')
+  async getMyInfo(@Request() req) {
+    const user = req.user;
+
+    const options = {} as Prisma.CreditorWhereUniqueInput;
+
+    if (user.id) {
+      options['id'] = user.id;
+    }
+
+    if (user.email) {
+      options['email'] = user.email;
+    }
+
+    const found = await this.coreCreditorService.getByUnique(options);
+
+    if (!found) {
+      throw new AuthorizationError('creditor is not found!');
+    }
+
+    const access_token = await this.generateAccessToken(found, UserRoles.CREDITOR);
+
+    return {
+      user: found,
+      token: {
+        access_token,
+      },
+    };
   }
 }
