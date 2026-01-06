@@ -18,7 +18,7 @@ export class CreateContractPaymentDto {
   @Type(() => Date)
   dueDate: Date;
 
-  @IsDate()
   @Type(() => Date)
+  @IsDate()
   paidAt: Date;
 }

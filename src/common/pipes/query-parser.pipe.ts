@@ -1,12 +1,17 @@
 // parse-query.pipe.ts
-import { PipeTransform, Injectable } from '@nestjs/common';
+import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ParseQueryPipe implements PipeTransform {
   constructor(private readonly dtoMap: Record<string, any>) {}
 
-  transform(value: any) {
+  transform(value: any, metadata: ArgumentMetadata) {
+    
+    if (metadata.type !== 'query') {
+      return value;
+    }
+
     const result: Record<string, any> = {};
 
     for (const [key, DtoClass] of Object.entries(this.dtoMap)) {

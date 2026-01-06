@@ -7,6 +7,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { ContractPaymentService } from '../services';
 import { ContractPaymentController } from '../controllers';
 import { ContractModule } from './contract.module';
+import { RequestQueryBuilder } from '../../../common';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { ContractModule } from './contract.module';
     AccessTokenModule,
   ], // AccessTokenModule JwtGuard uchun import qilingan
   controllers: [ContractPaymentController],
-  providers: [ContractPaymentService],
+  providers: [ContractPaymentService, RequestQueryBuilder],
   exports: [ContractPaymentService],
 })
 export class ContractPaymentModule {}

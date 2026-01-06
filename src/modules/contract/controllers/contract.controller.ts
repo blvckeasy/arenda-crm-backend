@@ -17,6 +17,7 @@ import {
   CoreContractService,
   ErrorCodeEnum,
   JwtGuard,
+  PaymentStatus,
   ProductError,
   ProductStatus,
   RecordStatus,
@@ -108,51 +109,55 @@ export class ContractController {
     });
 
     const payments: ContractPayment[] = [];
+    const firstPaymentDate: Date = this.dateUtil.getFirstPaymentDate(body.startDate, body.paymentDay);
+    const lastPaymentDate: Date = this.dateUtil.getNextDate(
+      firstPaymentDate,
+      foundSchedules.reduce((a, s) => a + s.monthNumber, 0),
+      'month',
+    );
+
     const monthlyDates = await this.dateUtil.getMonthlyDates(
-      this.dateUtil.getFirstDateOfMonth(createdContract.startDate),
-      this.dateUtil.getNextDate(
-        createdContract.startDate,
-        foundSchedules.reduce((a, s) => a + s.monthNumber, 0),
-        'month',
-      ),
+      firstPaymentDate,
+      lastPaymentDate,
       body.paymentDay,
     );
 
     // Sanalarni kuzatish uchun indeks
     let dateIndex = 0;
 
-    await Promise.all(
-      foundSchedules.map(async (schedule) => {
-        const updated = await this.contractScheduleService.update(
-          { id: schedule.id },
-          {
-            contract: {
-              connect: {
-                id: createdContract.id,
-              },
+    for (let j in foundSchedules) {
+      foundSchedules[j] = await this.contractScheduleService.update(
+        { id: foundSchedules[j].id },
+        {
+          contract: {
+            connect: {
+              id: createdContract.id,
             },
           },
-        );
+        },
+      );
 
-        for (let i = 1; i <= schedule.monthNumber; i++) {
-          // monthlyDates dan sanani indeks orqali olamiz
-          const paymentDateString = monthlyDates[dateIndex];
+      for (let i = 1; i <= foundSchedules[j].monthNumber; i++) {
+        // monthlyDates dan sanani indeks orqali olamiz
+        const paymentDateString = monthlyDates[dateIndex];
+        const paymentDate = this.dateUtil.stringToDate(paymentDateString);
 
-          const payment = await this.contractPaymentService.create({
-            contract: { connect: { id: createdContract.id } },
-            dueAmount: schedule.amount,
-            dueDate: this.dateUtil.stringToDate(paymentDateString),
-          });
+        const today = new Date();
+        const status = today > paymentDate ? PaymentStatus.OVERDUE : PaymentStatus.PENDING;
 
-          payments.push(payment);
+        const payment = await this.contractPaymentService.create({
+          contract: { connect: { id: createdContract.id } },
+          status,
+          dueAmount: foundSchedules[j].amount,
+          dueDate: paymentDate,
+        });
 
-          // Keyingi to'lovga o'tish uchun indeksni oshiramiz
-          dateIndex++;
-        }
+        payments.push(payment);
 
-        return updated;
-      }),
-    );
+        // Keyingi to'lovga o'tish uchun indeksni oshiramiz
+        dateIndex++;
+      }
+    }
 
     // productni ham statusini arendaga berilgan qilish kerak
     const product = await this.productService.update(foundProduct.id, {

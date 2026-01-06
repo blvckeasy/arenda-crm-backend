@@ -13,6 +13,7 @@ import {
   ContractScheduleModule,
   CronJobModule,
   ContractPaymentModule,
+  StatisticModule,
 } from './modules';
 
 @Module({
@@ -36,6 +37,7 @@ import {
     ContractModule,
     ContractScheduleModule,
     ContractPaymentModule,
+    StatisticModule,
   ],
 })
 export class AppModule {}

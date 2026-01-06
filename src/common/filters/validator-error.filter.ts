@@ -3,6 +3,9 @@ import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from "@nes
 @Catch(BadRequestException)
 export class ValidationExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
+
+    console.log(exception);
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
