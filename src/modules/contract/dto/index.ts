@@ -3,6 +3,7 @@ export * from './create-contract-schedule.dto';
 export * from './create-contract.dto';
 export * from './get-contract-schedule.dto';
 export * from './get-contract.dto';
+export * from './pay-with-amount.dto';
 export * from './update-contract-payment.dto';
 export * from './update-contract-schedule.dto';
 export * from './update-contract.dto';

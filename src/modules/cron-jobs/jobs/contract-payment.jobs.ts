@@ -10,29 +10,27 @@ export class ContractPaymentJobs {
     private contractPaymentService: ContractPaymentService,
   ) {}
 
-  // @Cron('45 * * * * *')
+  // BU cron job qarzdorliklarni aniqlaydi
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleContractPaymentOverdueStatusCron() {
+    const today = new Date();
+    const expiredContractPayments = await this.contractPaymentService.list({
+      dueDate: { lte: today, },
+      NOT: {
+        status: {
+          in: ['PAID', 'PARTIALLY_PAID'],
+        }
+      }
+    });
 
-  // // BU cron job qarzdorliklarni aniqlaydi
-  // @Cron(CronExpression.EVERY_10_SECONDS)
-  // async handleContractPaymentOverdueStatusCron() {
-  //   const today = new Date();
-  //   const expiredContractPayments = await this.contractPaymentService.list({
-  //     dueDate: { lte: today, },
-  //     NOT: {
-  //       status: {
-  //         in: ['PAID', 'PARTIALLY_PAID'],
-  //       }
-  //     }
-  //   });
-
-  //   expiredContractPayments.forEach(
-  //     async (contractPayment: ContractPayment) => {
-  //         await this.contractPaymentService.update(contractPayment.id, {
-  //           status: PaymentStatus.OVERDUE,
-  //         });
-  //     },
-  //   );
-  // }
+    expiredContractPayments.forEach(
+      async (contractPayment: ContractPayment) => {
+          await this.contractPaymentService.update(contractPayment.id, {
+            status: PaymentStatus.OVERDUE,
+          });
+      },
+    );
+  }
 
   // // BU cron job ozginasi to'langanlarini aniqlaydi
   // @Cron(CronExpression.EVERY_10_SECONDS)

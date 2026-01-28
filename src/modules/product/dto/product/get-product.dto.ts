@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
 import { ProductStatus, RecordStatus } from '@blvckeasy/arenda-crm-core';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class GetProductDto {
   @IsOptional()
@@ -41,4 +41,10 @@ export class GetProductDto {
   @IsOptional()
   @IsEnum(RecordStatus)
   recordStatus?: RecordStatus;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    return value === 'true' || value === true
+  })
+  includeRented?: boolean;
 }

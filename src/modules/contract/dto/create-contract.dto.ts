@@ -30,9 +30,9 @@ export class CreateContractDto {
   @Type(() => Number)
   totalPrice: number;
 
-  @IsNumber()
-  @Type(() => Number)
-  paymentDay: number;
+  @IsDate()
+  @Type(() => Date)
+  firstPaymentDate: Date;
 
   @IsNumber()
   @Type(() => Number)

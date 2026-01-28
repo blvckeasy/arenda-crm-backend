@@ -1,7 +1,7 @@
-import { ContractPaymentError, CoreContractScheduleService, ErrorCodeEnum, JwtGuard, PaymentStatus, PermissionError, RecordStatus } from "@blvckeasy/arenda-crm-core";
+import { ContractError, ContractPaymentError, CoreContractScheduleService, ErrorCodeEnum, JwtGuard, PaymentStatus, PermissionError, RecordStatus } from "@blvckeasy/arenda-crm-core";
 import { Controller, Get, UseGuards, Request, Param, ParseIntPipe, Inject, forwardRef, Post, Body, Patch, Query, UsePipes } from "@nestjs/common";
 import { ContractPaymentService, ContractService } from "../services";
-import { CreateContractPaymentDto, UpdateContractPaymentDto } from "../dto";
+import { CreateContractPaymentDto, PayWithAmountDto, UpdateContractPaymentDto } from "../dto";
 import { FilterByIdDto, IncludeQueryParamDto, ParseQueryPipe, RequestQueryBuilder } from "../../../common";
 
 
@@ -136,5 +136,47 @@ export class ContractPaymentController {
     const updated = await this.contractPaymentService.update(payment.id, dto);
 
     return updated;
+  }
+
+  @Patch('pay/:contractId')
+  async payMultipleBalances (
+    @Param('contractId', ParseIntPipe) contractId: number,
+    @Body() body: PayWithAmountDto,
+  ) {
+    let { paidAmount, paidDate } = body;
+
+    const contract = await this.contractService.getById({ id: contractId });
+
+    if (!contract) {
+      throw new ContractError(ErrorCodeEnum.NOT_FOUND);
+    }
+    const payments = await this.contractPaymentService.list(
+        { contractId }, 
+        undefined, 
+        { field: 'dueDate', direction: "asc" }
+    );
+
+    for (const payment of payments) {
+        if (paidAmount === 0) break;
+        if (payment.status == PaymentStatus.PAID) continue;
+
+        const amount = payment.dueAmount - payment.paidAmount;
+
+        if (amount > paidAmount) {
+            payment.status = PaymentStatus.PARTIALLY_PAID;
+            payment.paidAmount += paidAmount;
+            paidAmount = 0;
+        } else {
+            payment.status = PaymentStatus.PAID;
+            payment.paidAmount += amount;
+            paidAmount -= amount;
+        }
+
+        payment.paidAt = new Date(paidDate);
+
+        await this.contractPaymentService.update(payment.id, payment);
+    }
+
+    return payments;
   }
 }

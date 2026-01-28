@@ -32,6 +32,11 @@ export class CreateProductDto {
   model?: string;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  count: number;
+
+  @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
 }

@@ -35,6 +35,11 @@ export class UpdateProductDto {
   model?: string;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  count?: number;
+
+  @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
 

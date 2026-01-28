@@ -5,6 +5,7 @@ import {
   forwardRef,
   Get,
   Inject,
+  Param,
   Patch,
   Post,
   Query,
@@ -13,8 +14,10 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import {
+	ContractError,
   ContractPayment,
   CoreContractService,
+  CoreProductService,
   ErrorCodeEnum,
   JwtGuard,
   PaymentStatus,
@@ -49,6 +52,9 @@ export class ContractController {
 
     private readonly productService: ProductService,
 
+		@Inject(forwardRef(() => CoreProductService))
+		private readonly coreProductService: CoreProductService,
+
     private readonly requestQueryBuilder: RequestQueryBuilder,
     private readonly dateUtil: DateUtil,
   ) {}
@@ -63,9 +69,15 @@ export class ContractController {
       id: body.customer_id,
     });
 
-    const foundProduct = await this.productService.getById({
+    let foundProduct = await this.productService.getById({
       id: body.product_id,
     });
+
+		const contractProductIdsCount = await this.coreContractService.countDocumentsByFilter({ productId: foundProduct.id });
+
+		if (contractProductIdsCount >= foundProduct.count) {
+			throw new ProductError(ErrorCodeEnum.ALL_PRODUCTS_ARE_RENTED);
+		}
 
     if (foundProduct.status !== ProductStatus.ACTIVE) {
       throw new ProductError(ErrorCodeEnum.RECORD_IS_NOT_ACTIVE);
@@ -85,7 +97,7 @@ export class ContractController {
       yearPercent: body.yearPercent,
       initialPayment: body.initialPayment,
       totalPrice: body.totalPrice,
-      paymentDay: body.paymentDay,
+      firstPaymentDate: body.firstPaymentDate,
       owner: {
         connect: {
           id: req.user.id,
@@ -109,17 +121,16 @@ export class ContractController {
     });
 
     const payments: ContractPayment[] = [];
-    const firstPaymentDate: Date = this.dateUtil.getFirstPaymentDate(body.startDate, body.paymentDay);
     const lastPaymentDate: Date = this.dateUtil.getNextDate(
-      firstPaymentDate,
+      body.firstPaymentDate,
       foundSchedules.reduce((a, s) => a + s.monthNumber, 0),
       'month',
     );
 
     const monthlyDates = await this.dateUtil.getMonthlyDates(
-      firstPaymentDate,
+      body.firstPaymentDate,
       lastPaymentDate,
-      body.paymentDay,
+      body.firstPaymentDate.getDate(),
     );
 
     // Sanalarni kuzatish uchun indeks
@@ -159,12 +170,16 @@ export class ContractController {
       }
     }
 
-    // productni ham statusini arendaga berilgan qilish kerak
-    const product = await this.productService.update(foundProduct.id, {
-      status: ProductStatus.RENTED,
-    });
+		const productContractsCount = await this.coreProductService.countDocumentsByFilter({ id: foundProduct.id });
 
-    return { ...createdContract, product };
+		// agar productga tegishli contractlar soni product count ga teng bo'lsa product statusini RENTED ga o'zgartiramiz
+		if (productContractsCount >= foundProduct.count) {
+			foundProduct = await this.coreProductService.update(foundProduct.id, {
+				status: ProductStatus.RENTED,
+			});
+		}
+
+    return { ...createdContract, product: foundProduct };
   }
 
   @Get('list')
@@ -226,13 +241,81 @@ export class ContractController {
       }),
     );
 
+		const count = await this.coreContractService
+			.countDocumentsByFilter(filter);
+
     return {
       contractsFullInfo,
+			meta: {
+				total: count,
+        pagesCount: Math.ceil(count / pagination.size),
+        currentPage: pagination.page,
+        size: pagination.size,
+			},
       utility: {
         today: new Date().toLocaleDateString(),
       },
     };
   }
+
+	@Get('balance-info/:contractId')
+	async getContractBalanceInfo (
+		@Param('contractId') contractId: number,
+	) {
+		const contract = await this.coreContractService.getByUnique({ id: contractId });
+
+		if (!contract) {
+			throw new ContractError(ErrorCodeEnum.NOT_FOUND);
+		}
+
+		const payments = await this.contractPaymentService.list({ contractId });
+
+		const balance = {
+			contractAmount: contract.totalPrice,  // shartnoma summasi
+			overdue: 0,         									// umumiy qarzdorlik
+			currentDebt: 0,     									// joriy qarzdorlik
+			paid: 0,         											// to‘langan summa
+		};
+
+		const now = new Date();
+		const today = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate()
+		);
+
+		for (const payment of payments) {
+			switch (payment.status) {
+
+				case PaymentStatus.OVERDUE:
+				case PaymentStatus.PENDING:
+					if (today >= payment.dueDate) {
+						balance.currentDebt += payment.dueAmount;
+					}
+
+					break;
+				
+				case PaymentStatus.PAID:
+					balance.paid += payment.dueAmount;
+					break;
+
+				case PaymentStatus.PARTIALLY_PAID:
+					const overdueAmount = payment.dueAmount - payment.paidAmount;
+
+					balance.paid += payment.paidAmount;
+					balance.overdue += overdueAmount;
+
+					if (today >= payment.dueDate) {
+						balance.currentDebt += overdueAmount;
+					}
+					break;
+			}
+		}
+
+		balance.overdue = contract.totalPrice - balance.paid;
+
+		return balance;
+	}
 
   @Patch('update')
   @UseGuards(JwtGuard)

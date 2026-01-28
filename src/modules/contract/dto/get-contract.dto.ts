@@ -21,11 +21,13 @@ export class GetContractDto {
   @Type(() => Number)
   yearPercent?: number;
 
+  @IsOptional()
   @IsNumber()
   @Type(() => Number)
-  product_id: number;
+  product_id?: number;
 
+  @IsOptional()
   @IsNumber()
   @Type(() => Number)
-  customer_id: number;
+  customer_id?: number;
 }
